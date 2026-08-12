@@ -9,15 +9,22 @@ router = APIRouter(
     tags=["posts"]
 )
 
-@router.post("/createpost" ,response_model= schemas.PostResponse)
+@router.get("/profile",response_model=schemas.UserResponse)
+def see_profile(db:Session = Depends(database.get_db) ,current_user = Depends(oauth2.get_current_user) ):
+    profile = db.query(models.User).filter(models.User.id == current_user).first()
+    return profile
+    
+
+@router.post("/createpost")
 def create_post(post:schemas.PostCreate,db:Session =Depends(database.get_db),current_user = Depends(oauth2.get_current_user)):
     new_post = models.Post(**post.dict(),owner_id = current_user)
     db.add(new_post)
     db.commit()
     db.refresh(new_post)
-    return new_post
+    return {"message":"your post created successfully"}
 
-
+    
+    
 @router.get("/getpost",response_model=List[schemas.PostResponse])
 def get_post(db:Session = Depends(database.get_db),current_user = Depends(oauth2.get_current_user)):
     my_posts = db.query(models.Post).filter(models.Post.owner_id == current_user).all()
@@ -25,7 +32,7 @@ def get_post(db:Session = Depends(database.get_db),current_user = Depends(oauth2
 
 
 
-@router.put("/updatepost",response_model = schemas.PostResponse )
+@router.put("/updatepost")
 def update_post(updated_post:schemas.PostUpdate, db:Session=Depends(database.get_db),current_user = Depends(oauth2.get_current_user)):
     post = db.query(models.Post).filter(models.Post.id ==updated_post.id, models.Post.owner_id == current_user).first()
     if not post:
@@ -34,8 +41,7 @@ def update_post(updated_post:schemas.PostUpdate, db:Session=Depends(database.get
     post.content = updated_post.content
     db.commit()
     db.refresh(post)
-    return post
-
+    return {"message":"your post updated successfully"}
 
 @router.delete("/deletepost/{id}")
 def delete_post(id:int,db:Session = Depends(database.get_db),user_id = Depends(oauth2.get_current_user)):
